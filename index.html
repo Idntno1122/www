@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报备小站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b',
+                        accent: '#22d3ee',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass {
+                background: rgba(30, 41, 59, 0.7);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .animate-pulse-slow {
+                animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            }
+        }
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height:6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    
+    <div id="authPage" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass rounded-2xl p-8 w-full max-w-md card-shadow">
+            <div class="flex mb-6 border-b border-slate-600">
+                <button onclick="switchAuthTab('login')" id="loginTab" class="py-2 px-4 border-b-2 border-primary text-primary font-semibold">登录</button>
+                <button onclick="switchAuthTab('register')" id="regTab" class="py-2 px-4 text-slate-400">注册</button>
+            </div>
+            
+            <div id="loginForm">
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm">用户ID</label>
+                    <input type="text" id="loginUser" class="w-full bg-slate-800 rounded-lg p-3 outline-none focus:ring-2 ring-primary/50" placeholder="输入你的自定义ID">
+                </div>
+                <div class="mb-6">
+                    <label class="block mb-2 text-sm">密码</label>
+                    <input type="password" id="loginPwd" class="w-full bg-slate-800 rounded-lg p-3 outline-none focus:ring-2 ring-primary/50" placeholder="输入密码">
+                </div>
+                <button onclick="login()" class="w-full bg-primary hover:bg-primary/80 rounded-lg py-3 font-bold transition">登录系统</button>
+                <p id="loginTip" class="mt-3 text-red-400 text-sm hidden"></p>
+                <p class="mt-2 text-slate-400 text-sm">⚠️必须先注册账号才能登录</p>
+            </div>
+            
+            <div id="registerForm" class="hidden">
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm">自定义唯一ID（用来加好友，不可重复）</label>
+                    <input type="text" id="regId" class="w-full bg-slate-800 rounded-lg p-3 outline-none focus:ring-2 ring-primary/50" placeholder="英文+数字，例如：birthday001">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm">设置密码</label>
+                    <input type="password" id="regPwd" class="w-full bg-slate-800 rounded-lg p-3 outline-none focus:ring-2 ring-primary/50" placeholder="自定义密码">
+                </div>
+                <div class="mb-6">
+                    <label class="block mb-2 text-sm">展示昵称</label>
+                    <input type="text" id="regNick" class="w-full bg-slate-800 rounded-lg p-3 outline-none focus:ring-2 ring-primary/50" placeholder="别人看到你的名字">
+                </div>
+                <button onclick="register()" class="w-full bg-accent hover:bg-accent/80 rounded-lg py-3 font-bold text-slate-900 transition">注册账号</button>
+                <p id="regTip" class="mt-3 text-red-400 text-sm hidden"></p>
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="mainPage" class="hidden">
+      
+        <nav class="glass sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center">
+            <h1 class="text-xl font-bold text-accent"><i class="fa fa-calendar-check-o mr-2"></i>报备e站</h1>
+            <div class="flex gap-3 items-center flex-wrap mt-2 md:mt-0">
+                <span id="userNick" class="text-sm text-slate-300"></span>
+                <span id="showUid" class="text-xs text-slate-400"></span>
+                <button onclick="switchPanel('home')" class="px-3 py-1 rounded hover:bg-slate-700">主页</button>
+                <button onclick="switchPanel('checkin')" class="px-3 py-1 rounded hover:bg-slate-700">打卡</button>
+                <button onclick="switchPanel('countdown')" class="px-3 py-1 rounded hover:bg-slate-700">倒数日</button>
+                <button onclick="switchPanel('wish')" class="px-3 py-1 rounded hover:bg-slate-700">许愿池</button>
+                <button onclick="switchPanel('food')" class="px-3 py-1 rounded hover:bg-slate-700">每日美食</button>
+                <button onclick="switchPanel('moment')" class="px-3 py-1 rounded hover:bg-slate-700">朋友圈</button>
+                <button onclick="switchPanel('friend')" class="px-3 py-1 rounded hover:bg-slate-700">好友</button>
+                <button onclick="switchPanel('team')" class="px-3 py-1 rounded hover:bg-slate-700">组队</button>
+                <button onclick="switchPanel('memo')" class="px-3 py-1 rounded hover:bg-slate-700">备忘录</button>
+                <button onclick="switchPanel('history')" class="px-3 py-1 rounded hover:bg-slate-700">打卡记录</button>
+                <button onclick="logout()" class="px-3 py-1 rounded bg-red-600/60 hover:bg-red-600">退出</button>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4">
+            
+            <div id="panel-home" class="panel">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="glass rounded-xl p-6 card-shadow">
+                        <h2 class="text-lg font-semibold mb-4"><i class="fa fa-cloud mr-2 text-accent"></i>本地天气预报</h2>
+                        <div id="weatherBox">
+                            <p class="text-slate-400">正在定位你的城市...</p>
+                        </div>
+                    </div>
+                    <div class="glass rounded-xl p-6 card-shadow">
+                        <h2 class="text-lg font-semibold mb-4"><i class="fa fa-line-chart mr-2 text-accent"></i>今日打卡概览</h2>
+                        <div id="todaySummary">
+                            <p class="text-slate-300">今日打卡：0 / 三餐+学习</p>
+                            <p class="text-slate-400 mt-2">前往打卡面板 完成今日报备</p>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="font-medium">当前激活倒数目标</h3>
+                            <div id="homeCountdownList" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-6 mt-6 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-heart text-rose-400 mr-2"></i>小鼓励</h2>
+                    <div id="wishEncourageBox" class="text-lg text-slate-200">
+                        <p>写下心愿，主页会在这里生成专属鼓励✨</p>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-6 mt-6 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-book mr-2 text-accent"></i>每日心得</h2>
+                    <textarea id="dailyThought" class="w-full bg-slate-800 rounded-lg p-4 h-36 outline-none resize-none" placeholder="在这里写下今天的感想、收获与碎碎念..."></textarea>
+                    <button onclick="saveThought()" class="mt-3 bg-primary px-4 py-2 rounded-lg hover:bg-primary/80">保存心得</button>
+                    <div id="thoughtHistory" class="mt-4"></div>
+                </div>
+            </div>
+
+            
+            <div id="panel-checkin" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-check-square-o mr-2 text-accent"></i>每日报备打卡</h2>
+                    <div class="mb-4">
+                        <label class="block mb-2">选择所属倒数目标</label>
+                        <select id="checkinTarget" class="w-full bg-slate-800 p-3 rounded-lg">
+                            <option value="">无目标（普通打卡）</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" id="breakfast">早餐完成
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" id="lunch">午餐完成
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" id="dinner">晚餐完成
+                            </label>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" id="study">今日学习完成
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">打卡备注</label>
+                        <textarea id="checkinNote" class="w-full bg-slate-800 p-3 rounded-lg h-24 resize-none" placeholder="写点说明，学习内容、三餐情况..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">上传附件（支持多文件，任意类型）</label>
+                        <input type="file" multiple id="fileUpload" class="w-full bg-slate-800 p-3 rounded-lg">
+                        <div id="filePreview" class="mt-2 flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="mr-3"><input type="radio" name="checkMode" value="public">公开打卡</label>
+                        <label class="mr-3"><input type="radio" name="checkMode" value="team">队内可见</label>
+                        <label class="mr-3"><input type="radio" name="checkMode" value="friend">仅好友可见</label>
+                        <label><input type="radio" name="checkMode" value="private" checked>仅自己私密</label>
+                    </div>
+                    <button onclick="submitCheckin()" class="bg-primary px-5 py-3 rounded-lg hover:bg-primary/80 font-semibold">提交今日打卡报备</button>
+                </div>
+            </div>
+
+            
+            <div id="panel-countdown" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-hourglass-half mr-2 text-accent"></i>新增倒数目标</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block mb-2">目标名称</label>
+                            <input id="cdName" class="w-full bg-slate-800 p-3 rounded-lg" placeholder="例如：考试、比赛">
+                        </div>
+                        <div>
+                            <label class="block mb-2">目标日期</label>
+                            <input type="date" id="cdDate" class="w-full bg-slate-800 p-3 rounded-lg">
+                        </div>
+                    </div>
+                    <button onclick="addCountdown()" class="bg-accent text-slate-900 px-4 py-2 rounded-lg hover:bg-accent/80 font-semibold">添加倒数目标</button>
+                    <div class="mt-6">
+                        <h3 class="font-semibold mb-3">我的全部目标列表</h3>
+                        <div id="cdList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div id="panel-wish" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-star mr-2 text-accent"></i>许愿池</h2>
+                    <textarea id="wishInput" class="w-full bg-slate-800 p-4 rounded-lg h-28 resize-none" placeholder="写下你的心愿..."></textarea>
+                    <div class="my-4">
+                        <label class="mr-3"><input type="radio" name="wishMode" value="public">公开心愿</label>
+                        <label class="mr-3"><input type="radio" name="wishMode" value="team">队内可见</label>
+                        <label class="mr-3"><input type="radio" name="wishMode" value="friend">仅好友可见</label>
+                        <label><input type="radio" name="wishMode" value="private" checked>私密心愿</label>
+                    </div>
+                    <button onclick="postWish()" class="mt-1 bg-primary px-4 py-2 rounded-lg hover:bg-primary/80">投递心愿</button>
+                    <div class="mt-6" id="wishPool"></div>
+                </div>
+            </div>
+
+            
+            <div id="panel-food" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-cutlery mr-2 text-accent"></i>每日美食分享</h2>
+                    <textarea id="foodDesc" class="w-full bg-slate-800 p-4 rounded-lg h-28 resize-none" placeholder="描述美食：甜品、零食、小吃、下午茶等"></textarea>
+                    <div class="my-3">
+                        <label class="block mb-2">上传美食图片（可选）</label>
+                        <input type="file" id="foodImgUpload" accept="image/*" class="w-full bg-slate-800 p-3 rounded-lg">
+                        <div id="foodImgPreview" class="mt-3"></div>
+                    </div>
+                    <div class="my-4">
+                        <label class="mr-3"><input type="radio" name="foodMode" value="public">公开美食</label>
+                        <label class="mr-3"><input type="radio" name="foodMode" value="team">队内可见</label>
+                        <label class="mr-3"><input type="radio" name="foodMode" value="friend">仅好友可见</label>
+                        <label><input type="radio" name="foodMode" value="private" checked>私密美食</label>
+                    </div>
+                    <button onclick="submitFood()" class="bg-primary px-4 py-2 rounded-lg hover:bg-primary/80">发布美食</button>
+                    <div class="mt-6" id="foodPool"></div>
+                </div>
+            </div>
+
+            
+            <div id="panel-moment" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-comment mr-2 text-accent"></i>朋友圈</h2>
+                    <textarea id="momentText" class="w-full bg-slate-800 p-4 rounded-lg h-28 resize-none" placeholder="发布朋友圈文字内容"></textarea>
+                    <div class="my-3">
+                        <label class="block mb-2">上传文件（不限数量，任意文件）</label>
+                        <input type="file" multiple id="momentFileInput" class="w-full bg-slate-800 p-3 rounded-lg">
+                        <div id="momentFilePreview" class="mt-3 flex flex-wrap gap-3"></div>
+                    </div>
+                    <div class="my-4">
+                        <label class="mr-2"><input type="radio" name="momentAuth" value="public">公开</label>
+                        <label class="mr-2"><input type="radio" name="momentAuth" value="team">队内可见</label>
+                        <label class="mr-2"><input type="radio" name="momentAuth" value="friend">仅好友可见</label>
+                        <label><input type="radio" name="momentAuth" value="private" checked>仅自己私密</label>
+                    </div>
+                    <button onclick="publishMoment()" class="bg-primary px-4 py-2 rounded-lg hover:bg-primary/80">发布朋友圈</button>
+                </div>
+                <div class="glass rounded-xl p-6 mt-6 card-shadow">
+                    <h3 class="font-semibold mb-4">朋友圈动态流</h3>
+                    <div id="momentList"></div>
+                </div>
+            </div>
+
+            
+            <div id="panel-friend" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-users mr-2 text-accent"></i>好友管理</h2>
+                    <div class="flex gap-3 mb-6">
+                        <input id="searchFriendId" class="flex-1 bg-slate-800 p-3 rounded-lg" placeholder="输入对方用户ID搜索好友">
+                        <button onclick="searchUserById()" class="bg-primary px-4 rounded-lg hover:bg-primary/80">搜索</button>
+                    </div>
+                    <div id="searchUserResult" class="mb-6"></div>
+                    <h3 class="font-semibold mb-3">待处理好友申请</h3>
+                    <div id="applyList" class="mb-6"></div>
+                    <h3 class="font-semibold mb-3">我的好友列表</h3>
+                    <div id="myFriendList"></div>
+                </div>
+            </div>
+
+        
+            <div id="panel-team" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-users mr-2 text-accent"></i>组队系统</h2>
+                    <div id="teamCreateBox">
+                        <button onclick="createTeam()" class="bg-accent text-slate-900 px-4 py-2 rounded-lg hover:bg-accent/80 font-semibold">创建新队伍（生成6位组队码）</button>
+                        <div class="my-4 flex gap-3">
+                            <input id="joinTeamCode" class="flex-1 bg-slate-800 p-3 rounded-lg" placeholder="输入6位组队码加入队伍">
+                            <button onclick="joinTeam()" class="bg-primary px-4 rounded-lg hover:bg-primary/80">加入队伍</button>
+                        </div>
+                    </div>
+                    <div id="teamInfoBox" class="hidden">
+                        <h3 class="font-bold text-accent">当前队伍信息</h3>
+                        <p class="my-2">队伍码：<span id="teamCodeShow" class="text-xl text-yellow-300"></span></p>
+                        <p class="my-2">队长ID：<span id="teamLeaderShow"></span></p>
+                        <h4 class="mt-4 font-semibold">队内成员列表</h4>
+                        <div id="teamMemberList" class="my-3"></div>
+                        <div id="teamOperateBtn" class="my-4"></div>
+                        <button onclick="leaveTeam()" class="bg-red-500 px-3 py-1 rounded">退出队伍</button>
+                    </div>
+                </div>
+            </div>
+
+        
+            <div id="panel-memo" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-sticky-note mr-2 text-accent"></i>私人备忘录</h2>
+                    <input id="memoTitle" class="w-full bg-slate-800 p-3 rounded-lg mb-3" placeholder="备忘录标题">
+                    <textarea id="memoContent" class="w-full bg-slate-800 p-4 rounded-lg h-40 resize-none" placeholder="记录待办、笔记、重要事项..."></textarea>
+                    <button onclick="addMemo()" class="mt-2 bg-primary px-4 py-2 rounded-lg hover:bg-primary/80">新建备忘录</button>
+                    <div class="mt-6" id="memoList"></div>
+                </div>
+            </div>
+
+           
+            <div id="panel-history" class="panel hidden">
+                <div class="glass rounded-xl p-6 mt-4 card-shadow">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-history mr-2 text-accent"></i>打卡历史记录</h2>
+                    <div class="mb-4">
+                        <label class="mr-4"><input type="radio" name="historyMode" value="all" checked>全部（公开+私密）</label>
+                        <label class="mr-4"><input type="radio" name="historyMode" value="public">仅看公开打卡</label>
+                        <label><input type="radio" name="historyMode" value="private">仅私密打卡</label>
+                    </div>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="encourageModal" class="fixed inset-0 bg-black/60 hidden z-[9999] flex items-center justify-center">
+        <div class="glass rounded-xl p-8 text-center card-shadow max-w-md">
+            <h2 class="text-2xl font-bold text-accent mb-3">🎉 太棒啦！打卡完成</h2>
+            <p id="encourageText" class="text-lg mb-6">坚持下去，目标一定达成！</p>
+            <button onclick="closeModal()" class="bg-primary px-6 py-2 rounded-lg">继续加油</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let fileArr = [];
+        let foodImageBase64 = "";
+        let momentFiles = [];
+        const encourageList = [
+            "坚持每一天，你超厉害！",
+            "今日任务拿下，离目标更近一步✨",
+            "三餐规律，稳步学习，未来可期",
+            "所有的努力都会有回报，继续向前！",
+            "保持节奏，胜利就在前方",
+            "今天的你，比昨天更好！"
+        ]
+        const wishEncourageTemplate = [
+            "你许下心愿：【{wish}】，相信你日复一日的坚持，终会如愿。",
+            "心愿「{wish}」正在等待实现，每一次打卡，都在靠近它。",
+            "还记得你的心愿：{wish}，不要着急，时间会给你答案。",
+            "怀揣心愿「{wish}」稳步前行，你付出的努力都算数。",
+            "心愿：{wish}，慢慢来，顶峰相见。"
+        ]
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => resolve(event.target.result);
+                reader.onerror = () => reject(new Error(`读取文件失败: ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.onload = ()=>{
+            checkLoginStatus();
+            bindFileInput();
+            bindFoodImageInput();
+            bindMomentFileInput();
+            getLocationWeather();
+        }
+
+        function switchAuthTab(tab){
+            if(tab === 'login'){
+                document.getElementById('loginTab').classList.add('border-b-2','border-primary','text-primary');
+                document.getElementById('regTab').classList.remove('border-b-2','border-primary','text-primary');
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+            }else{
+                document.getElementById('regTab').classList.add('border-b-2','border-primary','text-primary');
+                document.getElementById('loginTab').classList.remove('border-b-2','border-primary','text-primary');
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('loginForm').classList.add('hidden');
+            }
+        }
+
+        
+        function register(){
+            const uid = document.getElementById('regId').value.trim();
+            const pwd = document.getElementById('regPwd').value.trim();
+            const nick = document.getElementById('regNick').value.trim();
+            const tip = document.getElementById('regTip');
+            tip.classList.add('hidden');
+            if(!uid||!pwd||!nick){
+                tip.innerText = "ID、密码、昵称不能为空";
+                tip.classList.remove('hidden');
+                return;
+            }
+            const users = JSON.parse(localStorage.getItem("users") || "{}");
+            if(users[uid]){
+                tip.innerText = "该用户ID已被占用，请更换";
+                tip.classList.remove('hidden');
+                return;
+            }
+            users[uid] = {pwd,nick};
+            localStorage.setItem("users", JSON.stringify(users));
+            tip.innerText = "✅注册成功！切换到登录页登录";
+            tip.classList.remove('hidden');
+        }
+
+        
+        function login(){
+            const uid = document.getElementById('loginUser').value.trim();
+            const pwd = document.getElementById('loginPwd').value.trim();
+            const tip = document.getElementById('loginTip');
+            tip.classList.add('hidden');
+            const users = JSON.parse(localStorage.getItem("users") || "{}");
+            if(!users[uid]){
+                tip.innerText = "❌该ID不存在，请先注册账号";
+                tip.classList.remove('hidden');
+                return;
+            }
+            if(users[uid].pwd !== pwd){
+                tip.innerText = "❌密码错误";
+                tip.classList.remove('hidden');
+                return;
+            }
+            currentUser = {uid: uid, nick: users[uid].nick};
+            localStorage.setItem("currentLogin", JSON.stringify(currentUser));
+            renderMainPage();
+        }
+
+        function logout(){
+            localStorage.removeItem("currentLogin");
+            currentUser = null;
+            document.getElementById('authPage').classList.remove('hidden');
+            document.getElementById('mainPage').classList.add('hidden');
+        }
+
+        function checkLoginStatus(){
+            const saved = localStorage.getItem("currentLogin");
+            if(saved){
+                currentUser = JSON.parse(saved);
+                renderMainPage();
+            }
+        }
+
+        function renderMainPage(){
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainPage').classList.remove('hidden');
+            document.getElementById('userNick').innerText = "欢迎，"+currentUser.nick;
+            document.getElementById('showUid').innerText = `你的ID：${currentUser.uid}`;
+            refreshCountdownSelect();
+            renderCountdownList();
+            renderWishPool();
+            renderWishEncourage();
+            renderFoodList();
+            renderMemoList();
+            renderHistory();
+            refreshHomeCountdown();
+            loadDailyThought();
+            renderMomentList();
+            renderFriendPanel();
+            renderTeamPanel();
+        }
+
+        function switchPanel(panelName){
+            document.querySelectorAll('.panel').forEach(el=> el.classList.add('hidden'));
+            document.getElementById(`panel-${panelName}`).classList.remove('hidden');
+            if(panelName === 'history') renderHistory();
+            if(panelName === 'wish') renderWishPool();
+            if(panelName === 'food') renderFoodList();
+            if(panelName === 'memo') renderMemoList();
+            if(panelName === 'countdown') renderCountdownList();
+            if(panelName === 'home') renderWishEncourage();
+            if(panelName === 'moment') renderMomentList();
+            if(panelName === 'friend') renderFriendPanel();
+            if(panelName === 'team') renderTeamPanel();
+        }
+
+        
+        function getLocationWeather(){
+            if(!navigator.geolocation){
+                document.getElementById("weatherBox").innerHTML = "<p>浏览器不支持定位</p>";
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(pos=>{
+                const weatherMock = {
+                    city:"本地城市",
+                    today:"多云，24℃",
+                    tomorrow:"小雨，21℃",
+                    tip:"明日下雨，记得带伞☔"
+                }
+                let html = `
+                <p class="text-xl font-medium">${weatherMock.city}</p>
+                <p class="my-2">今日天气：${weatherMock.today}</p>
+                <p>明日预报：${weatherMock.tomorrow}</p>
+                <p class="mt-3 text-yellow-300">${weatherMock.tip}</p>
+                `;
+                document.getElementById("weatherBox").innerHTML = html;
+            },err=>{
+                document.getElementById("weatherBox").innerHTML = `<p>定位失败，请手动查看天气</p>`;
+            })
+        }
+
+        function bindFileInput(){
+            const input = document.getElementById('fileUpload');
+            input.onchange = (e)=>{
+                fileArr = [...e.target.files];
+                let previewHtml = "";
+                fileArr.forEach((f,idx)=>{
+                    previewHtml += `<span class="bg-slate-700 px-2 py-1 rounded text-sm">${f.name}</span>`
+                })
+                document.getElementById('filePreview').innerHTML = previewHtml;
+            }
+        }
+
+        function bindFoodImageInput(){
+            const imgInput = document.getElementById('foodImgUpload');
+            imgInput.onchange = function(e){
+                const file = e.target.files[0];
+                if(!file){
+                    foodImageBase64 = "";
+                    document.getElementById("foodImgPreview").innerHTML = "";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(event){
+                    foodImageBase64 = event.target.result;
+                    document.getElementById("foodImgPreview").innerHTML = `<img src="${foodImageBase64}" class="max-h-40 rounded-lg">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function bindMomentFileInput(){
+            const input = document.getElementById('momentFileInput');
+            input.onchange = async () => {
+                const files = [...(input.files || [])];
+                momentFiles = files;
+                const previews = await Promise.all(files.map(async (file) => {
+                    if (file.type.startsWith('image/')) {
+                        const base64 = await readFileAsDataURL(file);
+                        return `<img src="${base64}" class="h-28 rounded inline-block m-1">`;
+                    }
+                    return `<span class="bg-slate-700 p-2 rounded text-sm inline-block m-1">${file.name}</span>`;
+                }));
+                document.getElementById('momentFilePreview').innerHTML = previews.join('');
+            }
+        }
+
+        
+        function submitCheckin(){
+            const targetId = document.getElementById('checkinTarget').value;
+            const breakfast = document.getElementById('breakfast').checked;
+            const lunch = document.getElementById('lunch').checked;
+            const dinner = document.getElementById('dinner').checked;
+            const study = document.getElementById('study').checked;
+            const note = document.getElementById('checkinNote').value.trim();
+            const mode = document.querySelector('input[name="checkMode"]:checked').value;
+            const checkData = {
+                id:Date.now(),
+                uid:currentUser.uid,
+                nick:currentUser.nick,
+                teamId:getMyTeamCode(),
+                target:targetId,
+                time:new Date().toLocaleString(),
+                date:new Date().toLocaleDateString(),
+                breakfast,lunch,dinner,study,note,
+                mode,
+                files: fileArr.map(f=>f.name)
+            }
+            const allCheckins = JSON.parse(localStorage.getItem("allCheckins")||"[]");
+            allCheckins.push(checkData);
+            localStorage.setItem("allCheckins", JSON.stringify(allCheckins));
+            const randomText = encourageList[Math.floor(Math.random()*encourageList.length)];
+            document.getElementById('encourageText').innerText = randomText;
+            document.getElementById('encourageModal').classList.remove('hidden');
+            document.getElementById('breakfast').checked = false;
+            document.getElementById('lunch').checked = false;
+            document.getElementById('dinner').checked = false;
+            document.getElementById('study').checked = false;
+            document.getElementById('checkinNote').value = "";
+            fileArr = [];
+            document.getElementById('filePreview').innerHTML = "";
+            renderHistory();
+        }
+        function closeModal(){
+            document.getElementById('encourageModal').classList.add('hidden');
+        }
+
+       
+        function addCountdown(){
+            const name = document.getElementById('cdName').value.trim();
+            const date = document.getElementById('cdDate').value;
+            if(!name||!date) return alert("名称和日期不能为空");
+            const cdList = JSON.parse(localStorage.getItem("countdownList")||"[]");
+            cdList.push({id:Date.now(), name, date, uid:currentUser.uid});
+            localStorage.setItem("countdownList", JSON.stringify(cdList));
+            renderCountdownList();
+            refreshCountdownSelect();
+            refreshHomeCountdown();
+            document.getElementById('cdName').value = "";
+            document.getElementById('cdDate').value = "";
+        }
+        function renderCountdownList(){
+            const cdList = JSON.parse(localStorage.getItem("countdownList")||"[]");
+            const myCd = cdList.filter(x=>x.uid === currentUser.uid);
+            let html = "";
+            myCd.forEach(item=>{
+                const targetDate = new Date(item.date);
+                const now = new Date();
+                const diffDay = Math.ceil( (targetDate - now)/(1000*60*60*24) );
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg">
+                    <h3 class="font-bold text-accent">${item.name}</h3>
+                    <p>目标日期：${item.date}</p>
+                    <p class="text-xl my-2">剩余：${diffDay>0 ? diffDay : "已到期"} 天</p>
+                    <button onclick="delCd(${item.id})" class="text-red-400 text-sm">删除目标</button>
+                </div>
+                `
+            })
+            document.getElementById('cdList').innerHTML = html;
+        }
+        function delCd(id){
+            let cdList = JSON.parse(localStorage.getItem("countdownList")||"[]");
+            cdList = cdList.filter(x=>x.id!==id);
+            localStorage.setItem("countdownList", JSON.stringify(cdList));
+            renderCountdownList();
+            refreshCountdownSelect();
+            refreshHomeCountdown();
+        }
+        function refreshCountdownSelect(){
+            const cdList = JSON.parse(localStorage.getItem("countdownList")||"[]");
+            const myCd = cdList.filter(x=>x.uid === currentUser.uid);
+            let optHtml = `<option value="">无目标（普通打卡）</option>`;
+            myCd.forEach(item=>{
+                optHtml += `<option value="${item.id}">${item.name}</option>`
+            })
+            document.getElementById('checkinTarget').innerHTML = optHtml;
+        }
+        function refreshHomeCountdown(){
+            const cdList = JSON.parse(localStorage.getItem("countdownList")||"[]");
+            const myCd = cdList.filter(x=>x.uid === currentUser.uid);
+            let html = "";
+            myCd.slice(0,3).forEach(item=>{
+                const targetDate = new Date(item.date);
+                const now = new Date();
+                const diffDay = Math.ceil( (targetDate - now)/(1000*60*60*24) );
+                html += `<p>${item.name}：${diffDay>0?diffDay:"已结束"}天</p>`
+            })
+            document.getElementById('homeCountdownList').innerHTML = html;
+        }
+
+        
+        function postWish(){
+            const content = document.getElementById('wishInput').value.trim();
+            if(!content) return alert("心愿不能为空");
+            const wishMode = document.querySelector('input[name="wishMode"]:checked').value;
+            const wishList = JSON.parse(localStorage.getItem("wishList")||"[]");
+            wishList.push({
+                id:Date.now(),
+                uid:currentUser.uid,
+                nick:currentUser.nick,
+                teamId:getMyTeamCode(),
+                time:new Date().toLocaleString(),
+                content,
+                mode: wishMode
+            })
+            localStorage.setItem("wishList", JSON.stringify(wishList));
+            document.getElementById('wishInput').value = "";
+            renderWishPool();
+            renderWishEncourage();
+        }
+        function renderWishPool(){
+            const wishList = JSON.parse(localStorage.getItem("wishList")||"[]");
+            const friends = getFriendUidList();
+            const myTeamCode = getMyTeamCode();
+            let html = "";
+            wishList.reverse().forEach(item=>{
+                let canSee = false;
+                if(item.mode === 'public') canSee = true;
+                if(item.mode === 'friend' && friends.includes(item.uid)) canSee = true;
+                if(item.mode === 'team' && myTeamCode && item.teamId === myTeamCode) canSee = true;
+                if(item.mode === 'private' && item.uid === currentUser.uid) canSee = true;
+                if(!canSee) return;
+                let tagMap = {public:"公开心愿",team:"队内心愿",friend:"仅好友",private:"私密心愿"};
+                let colorMap = {public:"text-green-400",team:"text-blue-400",friend:"text-amber-400",private:"text-rose-400"};
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg mb-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-accent">${item.nick}</span>
+                        <div class="flex gap-2">
+                            <span class="${colorMap[item.mode]} text-xs">${tagMap[item.mode]}</span>
+                            <span class="text-xs text-slate-400">${item.time}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2">${item.content}</p>
+                </div>
+                `
+            })
+            document.getElementById('wishPool').innerHTML = html;
+        }
+        function renderWishEncourage(){
+            const wishList = JSON.parse(localStorage.getItem("wishList")||"[]");
+            const myWishes = wishList.filter(item => item.uid === currentUser.uid);
+            const boxDom = document.getElementById('wishEncourageBox');
+            if(myWishes.length === 0){
+                boxDom.innerHTML = `<p>写下心愿，主页会在这里生成专属鼓励✨</p>`;
+                return;
+            }
+            const latestWish = myWishes[myWishes.length-1];
+            const randomTemplate = wishEncourageTemplate[Math.floor(Math.random() * wishEncourageTemplate.length)];
+            const finalText = randomTemplate.replace("{wish}", latestWish.content);
+            boxDom.innerHTML = `<p class="text-xl">💫 ${finalText}</p>`;
+        }
+
+       
+        function submitFood(){
+            const desc = document.getElementById('foodDesc').value.trim();
+            const mode = document.querySelector('input[name="foodMode"]:checked').value;
+            if(!desc) return alert("美食描述不能为空");
+            const foodList = JSON.parse(localStorage.getItem("foodList")||"[]");
+            foodList.push({
+                id:Date.now(),
+                uid:currentUser.uid,
+                nick:currentUser.nick,
+                teamId:getMyTeamCode(),
+                time:new Date().toLocaleString(),
+                desc,
+                img: foodImageBase64,
+                mode
+            })
+            localStorage.setItem("foodList", JSON.stringify(foodList));
+            document.getElementById('foodDesc').value = "";
+            foodImageBase64 = "";
+            document.getElementById('foodImgPreview').innerHTML = "";
+            document.getElementById('foodImgUpload').value = "";
+            renderFoodList();
+        }
+        function renderFoodList(){
+            const foodList = JSON.parse(localStorage.getItem("foodList")||"[]");
+            const friends = getFriendUidList();
+            const myTeamCode = getMyTeamCode();
+            let html = "";
+            foodList.reverse().forEach(item=>{
+                let canSee = false;
+                if(item.mode === 'public') canSee = true;
+                if(item.mode === 'friend' && friends.includes(item.uid)) canSee = true;
+                if(item.mode === 'team' && myTeamCode && item.teamId === myTeamCode) canSee = true;
+                if(item.mode === 'private' && item.uid === currentUser.uid) canSee = true;
+                if(!canSee) return;
+                let tagMap = {public:"公开",team:"队内",friend:"仅好友",private:"私密"};
+                let colorMap = {public:"text-green-400",team:"text-blue-400",friend:"text-amber-400",private:"text-rose-400"};
+                let imgHtml = item.img ? `<img src="${item.img}" class="max-h-44 rounded mt-3">` : `<p class="text-slate-400 mt-2">无图片</p>`;
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg mb-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-accent font-semibold">${item.nick}</span>
+                        <div class="flex gap-2">
+                            <span class="${colorMap[item.mode]} text-xs">${tagMap[item.mode]}</span>
+                            <span class="text-xs text-slate-400">${item.time}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2">${item.desc}</p>
+                    ${imgHtml}
+                </div>
+                `
+            })
+            document.getElementById('foodPool').innerHTML = html;
+        }
+
+       
+        async function publishMoment(){
+            const text = document.getElementById('momentText').value.trim();
+            const auth = document.querySelector('input[name="momentAuth"]:checked').value;
+            if(!text) return alert("朋友圈文字不能为空");
+            const fileDataList = await Promise.all((momentFiles || []).map(async (file) => {
+                if (file.type.startsWith('image/')) {
+                    const base64 = await readFileAsDataURL(file);
+                    return { name: file.name, type: file.type, base64 };
+                }
+                return { name: file.name, type: file.type, base64: null };
+            }));
+            const momentList = JSON.parse(localStorage.getItem("momentList")||"[]");
+            momentList.push({
+                id:Date.now(),
+                uid:currentUser.uid,
+                nick:currentUser.nick,
+                teamId:getMyTeamCode(),
+                time:new Date().toLocaleString(),
+                text,
+                auth,
+                files:fileDataList
+            })
+            localStorage.setItem("momentList", JSON.stringify(momentList));
+            document.getElementById('momentText').value = "";
+            momentFiles = [];
+            document.getElementById('momentFilePreview').innerHTML = "";
+            document.getElementById('momentFileInput').value = "";
+            renderMomentList();
+        }
+        function renderMomentList(){
+            const momentList = JSON.parse(localStorage.getItem("momentList")||"[]");
+            const friends = getFriendUidList();
+            const myTeamCode = getMyTeamCode();
+            let html = "";
+            momentList.reverse().forEach(item=>{
+                let canSee = false;
+                if(item.auth === 'public') canSee = true;
+                if(item.auth === 'friend' && friends.includes(item.uid)) canSee = true;
+                if(item.auth === 'team' && myTeamCode && item.teamId === myTeamCode) canSee = true;
+                if(item.auth === 'private' && item.uid === currentUser.uid) canSee = true;
+                if(!canSee) return;
+                let tagMap = {public:"公开",team:"队内",friend:"仅好友",private:"仅自己"};
+                const files = Array.isArray(item.files) ? item.files : [];
+                let fileHtml = "";
+                files.forEach(f=>{
+                    if(f && f.base64){
+                        fileHtml += `<img src="${f.base64}" class="h-28 rounded inline-block m-1">`
+                    }else if(f && f.name){
+                        fileHtml += `<span class="bg-slate-700 p-2 rounded text-sm inline-block m-1">${f.name}</span>`
+                    }
+                })
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg mb-4">
+                    <div class="flex justify-between">
+                        <span class="text-accent font-bold">${item.nick}(${item.uid})</span>
+                        <span class="text-xs text-slate-400">${item.time} | ${tagMap[item.auth]}</span>
+                    </div>
+                    <p class="my-3">${item.text}</p>
+                    <div>${fileHtml||"<span class='text-slate-400'>无附件</span>"}</div>
+                </div>
+                `
+            })
+            document.getElementById('momentList').innerHTML = html;
+        }
+
+        
+        function getFriendUidList(){
+            const myFriendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            const my = myFriendData[currentUser.uid] || {list:[], apply:[]};
+            return my.list;
+        }
+        function searchUserById(){
+            const targetUid = document.getElementById('searchFriendId').value.trim();
+            const users = JSON.parse(localStorage.getItem("users")||"{}");
+            const resultDom = document.getElementById('searchUserResult');
+            if(targetUid === currentUser.uid){
+                resultDom.innerHTML = `<p class="text-yellow-400">不能添加自己</p>`;
+                return;
+            }
+            if(!users[targetUid]){
+                resultDom.innerHTML = `<p class="text-red-400">找不到该用户ID</p>`;
+                return;
+            }
+            resultDom.innerHTML = `
+            <div class="bg-slate-800 p-4 rounded-lg">
+                <p>昵称：${users[targetUid].nick}</p>
+                <p>UID：${targetUid}</p>
+                <button onclick="sendFriendApply('${targetUid}')" class="mt-2 bg-primary px-3 py-1 rounded">发送好友申请</button>
+            </div>
+            `
+        }
+        function sendFriendApply(targetUid){
+            const friendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            if(!friendData[targetUid]) friendData[targetUid] = {list:[], apply:[]};
+            const hasApply = friendData[targetUid].apply.some(x=>x.from === currentUser.uid);
+            const isFriend = friendData[currentUser.uid]?.list.includes(targetUid);
+            if(hasApply) return alert("已经发送过申请");
+            if(isFriend) return alert("对方已经是你的好友");
+            friendData[targetUid].apply.push({from:currentUser.uid, time:new Date().toLocaleString()});
+            localStorage.setItem("friendData", JSON.stringify(friendData));
+            alert("好友申请已发送");
+        }
+        function renderFriendPanel(){
+            const friendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            const myData = friendData[currentUser.uid] || {list:[], apply:[]};
+            const users = JSON.parse(localStorage.getItem("users") || "{}");
+            let applyHtml = "";
+            if(myData.apply.length ===0) applyHtml = "<p class='text-slate-400'>暂无申请</p>";
+            myData.apply.forEach(ap=>{
+                const apUser = users[ap.from];
+                applyHtml += `
+                <div class="bg-slate-800 p-3 rounded mb-2 flex justify-between items-center">
+                    <span>${apUser.nick}(${ap.from})</span>
+                    <div>
+                        <button onclick="acceptApply('${ap.from}')" class="bg-green-600 px-2 py-1 rounded mr-2">同意</button>
+                        <button onclick="rejectApply('${ap.from}')" class="bg-red-600 px-2 py-1 rounded">拒绝</button>
+                    </div>
+                </div>
+                `
+            })
+            document.getElementById('applyList').innerHTML = applyHtml;
+            let friendHtml = "";
+            if(myData.list.length ===0) friendHtml = "<p class='text-slate-400'>暂无好友</p>";
+            myData.list.forEach(fuid=>{
+                const fUser = users[fuid];
+                friendHtml += `
+                <div class="bg-slate-800 p-3 rounded mb-2 flex justify-between items-center">
+                    <span>${fUser.nick}(${fuid})</span>
+                    <button onclick="deleteFriend('${fuid}')" class="text-red-400 text-sm">删除好友</button>
+                </div>
+                `
+            })
+            document.getElementById('myFriendList').innerHTML = friendHtml;
+        }
+        function acceptApply(fromUid){
+            const friendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            if(!friendData[currentUser.uid]) friendData[currentUser.uid]={list:[],apply:[]};
+            friendData[currentUser.uid].list.push(fromUid);
+            friendData[currentUser.uid].apply = friendData[currentUser.uid].apply.filter(x=>x.from!==fromUid);
+            if(!friendData[fromUid]) friendData[fromUid]={list:[],apply:[]};
+            friendData[fromUid].list.push(currentUser.uid);
+            localStorage.setItem("friendData", JSON.stringify(friendData));
+            renderFriendPanel();
+        }
+        function rejectApply(fromUid){
+            const friendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            friendData[currentUser.uid].apply = friendData[currentUser.uid].apply.filter(x=>x.from!==fromUid);
+            localStorage.setItem("friendData", JSON.stringify(friendData));
+            renderFriendPanel();
+        }
+        function deleteFriend(targetUid){
+            const friendData = JSON.parse(localStorage.getItem("friendData")||"{}");
+            friendData[currentUser.uid].list = friendData[currentUser.uid].list.filter(x=>x!==targetUid);
+            friendData[targetUid].list = friendData[targetUid].list.filter(x=>x!==currentUser.uid);
+            localStorage.setItem("friendData", JSON.stringify(friendData));
+            renderFriendPanel();
+        }
+
+        function randomTeamCode(){
+            let code = "";
+            const chars = "0123456789";
+            for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*10)];
+            return code;
+        }
+        function createTeam(){
+            const teamCode = randomTeamCode();
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            teamList[teamCode] = {
+                leader:currentUser.uid,
+                members:[currentUser.uid]
+            }
+            localStorage.setItem("teamList", JSON.stringify(teamList));
+            localStorage.setItem("userTeam_"+currentUser.uid, teamCode);
+            alert("队伍创建成功！组队码："+teamCode);
+            renderTeamPanel();
+        }
+        function getMyTeamCode(){
+            return localStorage.getItem("userTeam_"+currentUser.uid) || null;
+        }
+        function joinTeam(){
+            const code = document.getElementById("joinTeamCode").value.trim();
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            if(!teamList[code]) return alert("组队码不存在");
+            const team = teamList[code];
+            if(team.members.includes(currentUser.uid)) return alert("你已经在这个队伍里了");
+            team.members.push(currentUser.uid);
+            teamList[code] = team;
+            localStorage.setItem("teamList", JSON.stringify(teamList));
+            localStorage.setItem("userTeam_"+currentUser.uid, code);
+            alert("成功加入队伍");
+            renderTeamPanel();
+        }
+        function leaveTeam(){
+            const code = getMyTeamCode();
+            if(!code) return;
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            const team = teamList[code];
+            team.members = team.members.filter(u=>u!==currentUser.uid);
+       
+            if(team.leader === currentUser.uid || team.members.length ===0){
+                delete teamList[code];
+            }else{
+                teamList[code] = team;
+            }
+            localStorage.setItem("teamList", JSON.stringify(teamList));
+            localStorage.removeItem("userTeam_"+currentUser.uid);
+            alert("已退出队伍");
+            renderTeamPanel();
+        }
+        function kickMember(kickUid){
+            const code = getMyTeamCode();
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            const team = teamList[code];
+            team.members = team.members.filter(u=>u!==kickUid);
+            localStorage.setItem("teamList", JSON.stringify(teamList));
+            localStorage.removeItem("userTeam_"+kickUid);
+            renderTeamPanel();
+        }
+        function disbandTeam(){
+            const code = getMyTeamCode();
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            const team = teamList[code];
+            team.members.forEach(m=>{
+                localStorage.removeItem("userTeam_"+m);
+            })
+            delete teamList[code];
+            localStorage.setItem("teamList", JSON.stringify(teamList));
+            localStorage.removeItem("userTeam_"+currentUser.uid);
+            alert("队伍已解散");
+            renderTeamPanel();
+        }
+        function renderTeamPanel(){
+            const code = getMyTeamCode();
+            if(!code){
+                document.getElementById("teamCreateBox").classList.remove("hidden");
+                document.getElementById("teamInfoBox").classList.add("hidden");
+                return;
+            }
+            document.getElementById("teamCreateBox").classList.add("hidden");
+            document.getElementById("teamInfoBox").classList.remove("hidden");
+            const teamList = JSON.parse(localStorage.getItem("teamList")||"{}");
+            const team = teamList[code];
+            const users = JSON.parse(localStorage.getItem("users")||"{}");
+            document.getElementById("teamCodeShow").innerText = code;
+            document.getElementById("teamLeaderShow").innerText = team.leader;
+            let memberHtml = "";
+            team.members.forEach(mUid=>{
+                const u = users[mUid];
+                let kickBtn = "";
+                if(team.leader === currentUser.uid && mUid!==currentUser.uid){
+                    kickBtn = `<button onclick="kickMember('${mUid}')" class="text-red-400 text-sm ml-3">踢出</button>`;
+                }
+                memberHtml += `<div class="bg-slate-800 p-2 rounded my-1">${u.nick}(${mUid}) ${kickBtn}</div>`;
+            })
+            document.getElementById("teamMemberList").innerHTML = memberHtml;
+            let opHtml = "";
+            if(team.leader === currentUser.uid){
+                opHtml = `<button onclick="disbandTeam()" class="bg-red-600 px-3 py-1 rounded">解散队伍</button>`;
+            }
+            document.getElementById("teamOperateBtn").innerHTML = opHtml;
+        }
+
+       
+        function addMemo(){
+            const title = document.getElementById('memoTitle').value.trim();
+            const content = document.getElementById('memoContent').value.trim();
+            if(!title||!content) return alert("标题和内容不能为空");
+            const memoList = JSON.parse(localStorage.getItem("memoList")||"[]");
+            memoList.push({
+                id:Date.now(),
+                uid:currentUser.uid,
+                title,
+                content,
+                time:new Date().toLocaleString()
+            })
+            localStorage.setItem("memoList", JSON.stringify(memoList));
+            document.getElementById('memoTitle').value = "";
+            document.getElementById('memoContent').value = "";
+            renderMemoList();
+        }
+        function renderMemoList(){
+            const memoList = JSON.parse(localStorage.getItem("memoList")||"[]");
+            const myMemo = memoList.filter(x=>x.uid === currentUser.uid);
+            let html = "";
+            myMemo.reverse().forEach(item=>{
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg mb-3">
+                    <h3 class="font-bold text-accent">${item.title}</h3>
+                    <p class="my-2">${item.content}</p>
+                    <span class="text-xs text-slate-400">${item.time}</span>
+                </div>
+                `
+            })
+            document.getElementById('memoList').innerHTML = html;
+        }
+
+     
+        function renderHistory(){
+            const allCheckins = JSON.parse(localStorage.getItem("allCheckins")||"[]");
+            const friends = getFriendUidList();
+            const myTeamCode = getMyTeamCode();
+            const modeSel = document.querySelector('input[name="historyMode"]:checked').value;
+            let html = "";
+            allCheckins.reverse().forEach(item=>{
+                let canSee = false;
+                if(item.mode === 'public') canSee = true;
+                if(item.mode === 'friend' && friends.includes(item.uid)) canSee = true;
+                if(item.mode === 'team' && myTeamCode && item.teamId === myTeamCode) canSee = true;
+                if(item.mode === 'private' && item.uid === currentUser.uid) canSee = true;
+                if(!canSee) return;
+                if(modeSel === "public" && item.mode !== "public") return;
+                if(modeSel === "private" && item.mode !== "private") return;
+                let tagMap = {public:"公开",team:"队内",friend:"仅好友",private:"私密"};
+                const files = Array.isArray(item.files) ? item.files : [];
+                const filesText = files.length ? files.join(", ") : "无";
+                html += `
+                <div class="bg-slate-800 p-4 rounded-lg mb-3">
+                    <div class="flex justify-between">
+                        <span class="text-accent font-bold">${item.nick}(${item.uid})</span>
+                        <span class="text-xs text-slate-400">${item.time} | ${tagMap[item.mode]}</span>
+                    </div>
+                    <p>早餐:${item.breakfast?"✅":"❌"} 午餐:${item.lunch?"✅":"❌"} 晚餐:${item.dinner?"✅":"❌"} 学习:${item.study?"✅":"❌"}</p>
+                    <p class="mt-2">备注：${item.note||"无备注"}</p>
+                    <p class="mt-1 text-slate-400">附件文件：${filesText}</p>
+                </div>
+                `
+            })
+            document.getElementById('historyList').innerHTML = html;
+        }
+
+        
+        function saveThought(){
+            const txt = document.getElementById("dailyThought").value.trim();
+            if(!txt) return alert("内容不能为空");
+            const thoughtList = JSON.parse(localStorage.getItem("thoughtList")||"[]");
+            thoughtList.push({uid:currentUser.uid,time:new Date().toLocaleString(),content:txt});
+            localStorage.setItem("thoughtList", JSON.stringify(thoughtList));
+            loadDailyThought();
+        }
+        function loadDailyThought(){
+            const thoughtList = JSON.parse(localStorage.getItem("thoughtList")||"[]");
+            const myThought = thoughtList.filter(x=>x.uid === currentUser.uid).reverse();
+            let html = "";
+            myThought.slice(0,5).forEach(item=>{
+                html += `<div class="bg-slate-800 p-3 rounded my-2"><p>${item.content}</p><span class="text-xs text-slate-400">${item.time}</span></div>`
+            })
+            document.getElementById("thoughtHistory").innerHTML = html;
+        }
+    </script>
+<div style="margin-top:40px;opacity:0.5;font-size:12px;text-align:center;">
+本站非商业用途，仅供Yang项目测试使用。
+</div>
+</body>
+</html>
